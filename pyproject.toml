@@ -1,0 +1,10 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "aether-model"
+version = "1.0.0"
+description = "Authoritative Model and Inference Engine for the Aether AI platform"
+readme = "README.md"
+requires-python = ">=3.9"

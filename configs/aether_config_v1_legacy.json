@@ -1,0 +1,20 @@
+{
+  "model_name": "aether-v1-legacy",
+  "version": "1.0.0",
+  "vocab_size": 579,
+  "d_model": 64,
+  "n_layers": 2,
+  "n_heads": 2,
+  "d_ff": 128,
+  "max_seq_len": 256,
+  "temperature": 0.7,
+  "top_p": 0.9,
+  "top_k": 40,
+  "eos_token": "<eos>",
+  "pad_token": "<pad>",
+  "system_token": "<system>",
+  "user_token": "<user>",
+  "assistant_token": "<assistant>",
+  "tool_token": "<tool>",
+  "evidence_token": "<evidence>"
+}

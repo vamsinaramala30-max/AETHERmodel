@@ -1,0 +1,220 @@
+{
+  "phase": "PHASE_20_ROOT_CAUSE_ANALYSIS",
+  "subsystems": {
+    "MODEL": 112
+  },
+  "fix_classifications": {
+    "TRAINING_FIX": 111,
+    "DATA_FIX": 1
+  },
+  "clusters": {
+    "CLUSTER_1_PLANNING_AND_DEPENDENCY": {
+      "title": "Planning, Sequencing & Prerequisite Dependencies",
+      "description": "Failures in chronological task ordering, missing deadlines, circular dependencies, and plan revision under new constraints.",
+      "priority": "P1_CRITICAL",
+      "categories": [
+        "PLANNING",
+        "DECOMPOSITION",
+        "DEPENDENCIES",
+        "PLAN_REVISION"
+      ],
+      "failure_count": 18,
+      "failure_percentage": 16.07,
+      "primary_failure_types": [
+        "PLANNING_FAILURE",
+        "DEPENDENCY_FAILURE"
+      ],
+      "sample_failure_ids": [
+        "FAIL_P18_P18_20",
+        "FAIL_P18_P18_21",
+        "FAIL_P18_P18_22",
+        "FAIL_P19_P19_05"
+      ]
+    },
+    "CLUSTER_2_REASONING_CONSTRAINTS_CONTRADICTIONS": {
+      "title": "Logic, Constraints, Impossibility & Arithmetic",
+      "description": "Failures to recognize impossible requirements, budget deficits, time constraints, or circular deadlocks.",
+      "priority": "P1_CRITICAL",
+      "categories": [
+        "CONSTRAINTS",
+        "CONTRADICTION",
+        "ERROR_DETECTION",
+        "REASONING"
+      ],
+      "failure_count": 16,
+      "failure_percentage": 14.29,
+      "primary_failure_types": [
+        "CONSTRAINT_FAILURE",
+        "REASONING_FAILURE",
+        "ARITHMETIC_FAILURE"
+      ],
+      "sample_failure_ids": [
+        "FAIL_P18_P18_13",
+        "FAIL_P18_P18_14",
+        "FAIL_P18_P18_15",
+        "FAIL_P18_P18_16"
+      ]
+    },
+    "CLUSTER_3_CLARIFICATION_AND_UNCERTAINTY": {
+      "title": "Clarification, Missing Information & Calibrated Uncertainty",
+      "description": "Failures where the model hallucinates assumptions instead of asking concise clarification questions, or fails to state uncertainty.",
+      "priority": "P1_CRITICAL",
+      "categories": [
+        "CLARIFICATION",
+        "MISSING_INFORMATION",
+        "AMBIGUITY",
+        "UNCERTAINTY",
+        "GROUNDING"
+      ],
+      "failure_count": 19,
+      "failure_percentage": 16.96,
+      "primary_failure_types": [
+        "CLARIFICATION_FAILURE",
+        "UNCERTAINTY_FAILURE",
+        "UNSUPPORTED_CLAIM"
+      ],
+      "sample_failure_ids": [
+        "FAIL_P18_P18_23",
+        "FAIL_P18_P18_24",
+        "FAIL_P18_P18_25",
+        "FAIL_P18_P18_26"
+      ]
+    },
+    "CLUSTER_4_DECISION_MAKING_AND_TRADEOFFS": {
+      "title": "Evidence-Based Decision Making, Prioritization & Trade-offs",
+      "description": "Failures to weigh competing options, triage urgent vs important tasks, or articulate engineering trade-offs.",
+      "priority": "P2_HIGH",
+      "categories": [
+        "DECISION",
+        "TRADE_OFFS",
+        "PRIORITIZATION"
+      ],
+      "failure_count": 12,
+      "failure_percentage": 10.71,
+      "primary_failure_types": [
+        "DECISION_FAILURE",
+        "TRADEOFF_FAILURE",
+        "PRIORITIZATION_FAILURE"
+      ],
+      "sample_failure_ids": [
+        "FAIL_P19_P19_17",
+        "FAIL_P19_P19_18",
+        "FAIL_P19_P19_19",
+        "FAIL_P19_P19_20"
+      ]
+    },
+    "CLUSTER_5_CONTEXT_AND_MULTI_TURN_TRACKING": {
+      "title": "Multi-turn Dialogue Context, Memory & Pronoun Resolution",
+      "description": "Loss of entity state, task references, or user constraints across multiple conversational turns.",
+      "priority": "P2_HIGH",
+      "categories": [
+        "CONTEXT",
+        "MEMORY"
+      ],
+      "failure_count": 11,
+      "failure_percentage": 9.82,
+      "primary_failure_types": [
+        "CONTEXT_FAILURE",
+        "MEMORY_FAILURE"
+      ],
+      "sample_failure_ids": [
+        "FAIL_P18_P18_27",
+        "FAIL_P18_P18_28",
+        "FAIL_P18_P18_29",
+        "FAIL_P18_P18_30"
+      ]
+    },
+    "CLUSTER_6_INSTRUCTION_FOLLOWING_AND_LANGUAGE": {
+      "title": "Instruction Following, Constraints & Semantic Coherence",
+      "description": "Violations of negative constraints, bullet counts, formatting rules, or semantic incoherence.",
+      "priority": "P2_HIGH",
+      "categories": [
+        "INSTRUCTION_FOLLOWING",
+        "ADVERSARIAL",
+        "CONVERSATION",
+        "EXPLANATION",
+        "SUMMARIZATION",
+        "TOOL_INTENT",
+        "FAILURE_HANDLING",
+        "REPETITION",
+        "USEFULNESS"
+      ],
+      "failure_count": 28,
+      "failure_percentage": 25.0,
+      "primary_failure_types": [
+        "INSTRUCTION_FOLLOWING_FAILURE",
+        "UNDERSTANDING_FAILURE",
+        "GOAL_DRIFT",
+        "REPETITION",
+        "MALFORMED_OUTPUT"
+      ],
+      "sample_failure_ids": [
+        "FAIL_P18_P18_01",
+        "FAIL_P18_P18_02",
+        "FAIL_P18_P18_03",
+        "FAIL_P18_P18_04"
+      ]
+    }
+  },
+  "high_priority_actions": [
+    {
+      "priority": "P1_CRITICAL",
+      "action": "Generate generalized Planning & Dependency improvement dataset.",
+      "target_subsystem": "DATASET / TRAINING",
+      "affected_categories": [
+        "PLANNING",
+        "DECOMPOSITION",
+        "DEPENDENCIES",
+        "PLAN_REVISION"
+      ]
+    },
+    {
+      "priority": "P1_CRITICAL",
+      "action": "Generate Constraint Handling, Budget & Contradiction recognition dataset.",
+      "target_subsystem": "DATASET / TRAINING",
+      "affected_categories": [
+        "CONSTRAINTS",
+        "CONTRADICTION",
+        "ERROR_DETECTION",
+        "REASONING"
+      ]
+    },
+    {
+      "priority": "P1_CRITICAL",
+      "action": "Generate Clarification & Calibrated Uncertainty dataset with missing parameter queries.",
+      "target_subsystem": "DATASET / TRAINING",
+      "affected_categories": [
+        "CLARIFICATION",
+        "MISSING_INFORMATION",
+        "AMBIGUITY",
+        "UNCERTAINTY"
+      ]
+    },
+    {
+      "priority": "P2_HIGH",
+      "action": "Generate Multi-turn Context & Pronoun Resolution tracking dataset.",
+      "target_subsystem": "DATASET / TRAINING",
+      "affected_categories": [
+        "CONTEXT",
+        "MEMORY"
+      ]
+    },
+    {
+      "priority": "P2_HIGH",
+      "action": "Generate Negative Constraint & Formatting Instruction Following dataset.",
+      "target_subsystem": "DATASET / TRAINING",
+      "affected_categories": [
+        "INSTRUCTION_FOLLOWING",
+        "ADVERSARIAL"
+      ]
+    },
+    {
+      "priority": "P3_MAINTENANCE",
+      "action": "Isolate benchmark prompt leakage (P18_02 'What is Aether?') from future training splits.",
+      "target_subsystem": "DATASET_HYGIENE",
+      "affected_categories": [
+        "CONVERSATION"
+      ]
+    }
+  ]
+}

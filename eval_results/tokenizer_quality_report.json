@@ -1,0 +1,328 @@
+{
+  "bpe_tokenizer": {
+    "tokenizer_name": "Production BPE Tokenizer (1024)",
+    "algorithm": "byte_level_bpe",
+    "vocab_size": 1024,
+    "vocab_hash": "bc1a152aa9a1b3105f137c111581abab9aaaffda3643ef8b2fb417695df313bf",
+    "total_samples_evaluated": 102,
+    "total_characters": 13030,
+    "total_tokens": 5884,
+    "avg_tokens_per_sample": 57.69,
+    "avg_chars_per_token": 2.214,
+    "compression_ratio": 2.214,
+    "total_unknown_tokens": 0,
+    "unknown_token_rate_pct": 0.0,
+    "round_trip_accuracy_pct": 100.0,
+    "benchmark_prompts_passed": "24/24",
+    "benchmark_prompts_all_passed": true,
+    "benchmark_details": [
+      {
+        "prompt": "Hello world",
+        "tokens": 6,
+        "passed": true,
+        "decoded": "Hello world"
+      },
+      {
+        "prompt": "Hello, world!",
+        "tokens": 8,
+        "passed": true,
+        "decoded": "Hello, world!"
+      },
+      {
+        "prompt": "Aether is an intelligent workspace platform designed for agentic task automation.",
+        "tokens": 23,
+        "passed": true,
+        "decoded": "Aether is an intelligent workspace platform designed for agentic task automation."
+      },
+      {
+        "prompt": "What is the difference between synchronous and asynchronous execution in TypeScript?",
+        "tokens": 25,
+        "passed": true,
+        "decoded": "What is the difference between synchronous and asynchronous execution in TypeScript?"
+      },
+      {
+        "prompt": "Explain retrieval-augmented generation and contextual memory persistence.",
+        "tokens": 24,
+        "passed": true,
+        "decoded": "Explain retrieval-augmented generation and contextual memory persistence."
+      },
+      {
+        "prompt": "don't",
+        "tokens": 4,
+        "passed": true,
+        "decoded": "don't"
+      },
+      {
+        "prompt": "can't",
+        "tokens": 3,
+        "passed": true,
+        "decoded": "can't"
+      },
+      {
+        "prompt": "it's",
+        "tokens": 3,
+        "passed": true,
+        "decoded": "it's"
+      },
+      {
+        "prompt": "developer123",
+        "tokens": 5,
+        "passed": true,
+        "decoded": "developer123"
+      },
+      {
+        "prompt": "user_id: 885d8851-049c-4497-8f88-d26889fb84d4",
+        "tokens": 41,
+        "passed": true,
+        "decoded": "user_id: 885d8851-049c-4497-8f88-d26889fb84d4"
+      },
+      {
+        "prompt": "hello@example.com",
+        "tokens": 9,
+        "passed": true,
+        "decoded": "hello@example.com"
+      },
+      {
+        "prompt": "https://aether.ai/api/v1/workspaces?page=1&limit=50",
+        "tokens": 31,
+        "passed": true,
+        "decoded": "https://aether.ai/api/v1/workspaces?page=1&limit=50"
+      },
+      {
+        "prompt": "25 × 4 = 100",
+        "tokens": 11,
+        "passed": true,
+        "decoded": "25 × 4 = 100"
+      },
+      {
+        "prompt": "Equation: x^2 + y^2 = r^2, where r >= 0",
+        "tokens": 31,
+        "passed": true,
+        "decoded": "Equation: x^2 + y^2 = r^2, where r >= 0"
+      },
+      {
+        "prompt": "₹1000",
+        "tokens": 5,
+        "passed": true,
+        "decoded": "₹1000"
+      },
+      {
+        "prompt": "$42.50 USD",
+        "tokens": 10,
+        "passed": true,
+        "decoded": "$42.50 USD"
+      },
+      {
+        "prompt": "Parentheses (test), brackets [1, 2, 3], braces {a: 'b'}.",
+        "tokens": 42,
+        "passed": true,
+        "decoded": "Parentheses (test), brackets [1, 2, 3], braces {a: 'b'}."
+      },
+      {
+        "prompt": "नमस्ते",
+        "tokens": 18,
+        "passed": true,
+        "decoded": "नमस्ते"
+      },
+      {
+        "prompt": "తెలుగు",
+        "tokens": 18,
+        "passed": true,
+        "decoded": "తెలుగు"
+      },
+      {
+        "prompt": "café résumé naïve 世界 🚀 🤖 ⚡",
+        "tokens": 39,
+        "passed": true,
+        "decoded": "café résumé naïve 世界 🚀 🤖 ⚡"
+      },
+      {
+        "prompt": "AI-powered intelligent assistant: नमस्ते / తెలుగు / 日本語",
+        "tokens": 63,
+        "passed": true,
+        "decoded": "AI-powered intelligent assistant: नमस्ते / తెలుగు / 日本語"
+      },
+      {
+        "prompt": "def calculate_total(items: list) -> float:\n    return sum(x.price for x in items)",
+        "tokens": 48,
+        "passed": true,
+        "decoded": "def calculate_total(items: list) -> float:\n    return sum(x.price for x in items)"
+      },
+      {
+        "prompt": "export interface TaskResult {\n  id: string;\n  status: 'COMPLETED' | 'FAILED';\n}",
+        "tokens": 43,
+        "passed": true,
+        "decoded": "export interface TaskResult {\n  id: string;\n  status: 'COMPLETED' | 'FAILED';\n}"
+      },
+      {
+        "prompt": "<system> You are Aether. <user> What is BPE? <assistant> Byte-Pair Encoding. <eos>",
+        "tokens": 36,
+        "passed": true,
+        "decoded": "<system> You are Aether. <user> What is BPE? <assistant> Byte-Pair Encoding. <eos>"
+      }
+    ]
+  },
+  "legacy_tokenizer": {
+    "tokenizer_name": "Legacy Word-Regex Tokenizer (579)",
+    "algorithm": "word_regex",
+    "vocab_size": 358,
+    "vocab_hash": "b6ee3c601032b129cdb91ecaee2956deca277abb969e981cf47050579c1be348",
+    "total_samples_evaluated": 102,
+    "total_characters": 13030,
+    "total_tokens": 2426,
+    "avg_tokens_per_sample": 23.78,
+    "avg_chars_per_token": 5.371,
+    "compression_ratio": 5.371,
+    "total_unknown_tokens": 862,
+    "unknown_token_rate_pct": 35.5317,
+    "round_trip_accuracy_pct": 0.0,
+    "benchmark_prompts_passed": "0/24",
+    "benchmark_prompts_all_passed": false,
+    "benchmark_details": [
+      {
+        "prompt": "Hello world",
+        "tokens": 2,
+        "passed": false,
+        "decoded": "hello <unk>"
+      },
+      {
+        "prompt": "Hello, world!",
+        "tokens": 4,
+        "passed": false,
+        "decoded": "hello, <unk>!"
+      },
+      {
+        "prompt": "Aether is an intelligent workspace platform designed for agentic task automation.",
+        "tokens": 12,
+        "passed": false,
+        "decoded": "aether is an <unk> workspace <unk> <unk> for agentic task automation."
+      },
+      {
+        "prompt": "What is the difference between synchronous and asynchronous execution in TypeScript?",
+        "tokens": 12,
+        "passed": false,
+        "decoded": "what is the <unk> <unk> <unk> and <unk> execution in typescript?"
+      },
+      {
+        "prompt": "Explain retrieval-augmented generation and contextual memory persistence.",
+        "tokens": 10,
+        "passed": false,
+        "decoded": "<unk> retrieval - <unk> <unk> and contextual memory <unk>."
+      },
+      {
+        "prompt": "don't",
+        "tokens": 3,
+        "passed": false,
+        "decoded": "<unk>' <unk>"
+      },
+      {
+        "prompt": "can't",
+        "tokens": 3,
+        "passed": false,
+        "decoded": "can' <unk>"
+      },
+      {
+        "prompt": "it's",
+        "tokens": 3,
+        "passed": false,
+        "decoded": "it' <unk>"
+      },
+      {
+        "prompt": "developer123",
+        "tokens": 1,
+        "passed": false,
+        "decoded": "<unk>"
+      },
+      {
+        "prompt": "user_id: 885d8851-049c-4497-8f88-d26889fb84d4",
+        "tokens": 11,
+        "passed": false,
+        "decoded": "<unk>: <unk> - <unk> - <unk> - <unk> - <unk>"
+      },
+      {
+        "prompt": "hello@example.com",
+        "tokens": 5,
+        "passed": false,
+        "decoded": "hello @ <unk>. <unk>"
+      },
+      {
+        "prompt": "https://aether.ai/api/v1/workspaces?page=1&limit=50",
+        "tokens": 21,
+        "passed": false,
+        "decoded": "<unk>: / / aether. ai / api / <unk> / workspaces? <unk> = 1 & <unk> = <unk>"
+      },
+      {
+        "prompt": "25 × 4 = 100",
+        "tokens": 5,
+        "passed": false,
+        "decoded": "<unk> <unk> 4 = <unk>"
+      },
+      {
+        "prompt": "Equation: x^2 + y^2 = r^2, where r >= 0",
+        "tokens": 19,
+        "passed": false,
+        "decoded": "<unk>: <unk> ^ 2 + <unk> ^ 2 = <unk> ^ 2, where <unk> > = 0"
+      },
+      {
+        "prompt": "₹1000",
+        "tokens": 2,
+        "passed": false,
+        "decoded": "<unk> <unk>"
+      },
+      {
+        "prompt": "$42.50 USD",
+        "tokens": 5,
+        "passed": false,
+        "decoded": "$ <unk>. <unk> <unk>"
+      },
+      {
+        "prompt": "Parentheses (test), brackets [1, 2, 3], braces {a: 'b'}.",
+        "tokens": 23,
+        "passed": false,
+        "decoded": "<unk> (<unk>), <unk> [1, 2, 3], <unk> {a:' <unk>'}."
+      },
+      {
+        "prompt": "नमस्ते",
+        "tokens": 4,
+        "passed": false,
+        "decoded": "<unk> <unk> <unk> <unk>"
+      },
+      {
+        "prompt": "తెలుగు",
+        "tokens": 6,
+        "passed": false,
+        "decoded": "<unk> <unk> <unk> <unk> <unk> <unk>"
+      },
+      {
+        "prompt": "café résumé naïve 世界 🚀 🤖 ⚡",
+        "tokens": 7,
+        "passed": false,
+        "decoded": "<unk> <unk> <unk> <unk> <unk> <unk> <unk>"
+      },
+      {
+        "prompt": "AI-powered intelligent assistant: नमस्ते / తెలుగు / 日本語",
+        "tokens": 19,
+        "passed": false,
+        "decoded": "ai - <unk> <unk> assistant: <unk> <unk> <unk> <unk> / <unk> <unk> <unk> <unk> <unk> <unk> / <unk>"
+      },
+      {
+        "prompt": "def calculate_total(items: list) -> float:\n    return sum(x.price for x in items)",
+        "tokens": 22,
+        "passed": false,
+        "decoded": "<unk> <unk> (<unk>: list) - > <unk>: return <unk> (<unk>. <unk> for <unk> in <unk>)"
+      },
+      {
+        "prompt": "export interface TaskResult {\n  id: string;\n  status: 'COMPLETED' | 'FAILED';\n}",
+        "tokens": 19,
+        "passed": false,
+        "decoded": "export interface <unk> {<unk>: <unk>; status:' completed' |' <unk>';}"
+      },
+      {
+        "prompt": "<system> You are Aether. <user> What is BPE? <assistant> Byte-Pair Encoding. <eos>",
+        "tokens": 17,
+        "passed": false,
+        "decoded": "<system> you are aether. <user> what is <unk>? <assistant> <unk> - <unk> <unk>. <eos>"
+      }
+    ]
+  }
+}

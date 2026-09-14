@@ -1,0 +1,60 @@
+# AETHER_MODEL Phase 3 — Parameter-Efficient Fine-Tuning Configuration
+# Target Model: Qwen2.5-1.5B-Instruct adapted for Aether AI Life OS
+
+model:
+  base_model: "Qwen/Qwen2.5-1.5B-Instruct"
+  model_type: "causal_lm"
+  torch_dtype: "bfloat16" # or "float32" on CPU
+  trust_remote_code: true
+  device_map: "auto"
+
+adapter:
+  method: "lora"
+  r: 16
+  lora_alpha: 32
+  lora_dropout: 0.05
+  bias: "none"
+  task_type: "CAUSAL_LM"
+  target_modules:
+    - "q_proj"
+    - "k_proj"
+    - "v_proj"
+    - "o_proj"
+    - "gate_proj"
+    - "up_proj"
+    - "down_proj"
+
+data:
+  train_file: "data/phase3/train.jsonl"
+  val_file: "data/phase3/val.jsonl"
+  test_file: "data/phase3/test.jsonl"
+  max_seq_length: 512
+  packing: false
+
+training:
+  output_dir: "checkpoints/phase3/candidate-001"
+  num_train_epochs: 3
+  per_device_train_batch_size: 1
+  per_device_eval_batch_size: 1
+  gradient_accumulation_steps: 8 # Effective batch size = 8
+  learning_rate: 2.0e-4
+  weight_decay: 0.01
+  warmup_ratio: 0.10
+  lr_scheduler_type: "cosine"
+  logging_steps: 5
+  eval_strategy: "epoch"
+  save_strategy: "epoch"
+  save_total_limit: 2
+  load_best_model_at_end: true
+  metric_for_best_model: "eval_loss"
+  greater_is_better: false
+  seed: 42
+  fp16: false
+  bf16: false # Enable on CUDA Ampere+
+  gradient_checkpointing: true
+  optim: "adamw_torch"
+
+export:
+  target_format: "gguf"
+  quantization: "Q4_K_M"
+  output_gguf: "checkpoints/aether-phase3-candidate.gguf"

@@ -1,0 +1,182 @@
+[
+  {
+    "id": "lang_01",
+    "category": "language",
+    "prompt": "Write a clear, professional two-sentence email thanking a client for attending an introductory meeting.",
+    "expected_keywords": ["thank", "meeting"]
+  },
+  {
+    "id": "lang_02",
+    "category": "language",
+    "prompt": "Explain the concept of compound interest in one clear paragraph suitable for a high school student.",
+    "expected_keywords": ["interest", "principal"]
+  },
+  {
+    "id": "lang_03",
+    "category": "language",
+    "prompt": "Rewrite the following informal sentence to sound polite and professional: 'Send me the files right now.'",
+    "expected_keywords": ["please", "could", "would"]
+  },
+  {
+    "id": "inst_01",
+    "category": "instruction_following",
+    "prompt": "List exactly 3 benefits of drinking water. Do not include any greeting or conversational filler. Use a numbered list.",
+    "constraint": "exactly_3_numbered_items"
+  },
+  {
+    "id": "inst_02",
+    "category": "instruction_following",
+    "prompt": "Name five European capitals. Output only the five names separated by commas, with no other text.",
+    "constraint": "comma_separated_names"
+  },
+  {
+    "id": "inst_03",
+    "category": "instruction_following",
+    "prompt": "Answer this question using fewer than 15 words: What is photosynthesis?",
+    "constraint": "max_15_words"
+  },
+  {
+    "id": "inst_04",
+    "category": "instruction_following",
+    "prompt": "Write a haiku about a rainy morning. A haiku has 5 syllables in line 1, 7 in line 2, and 5 in line 3.",
+    "constraint": "haiku_format"
+  },
+  {
+    "id": "arith_01",
+    "category": "arithmetic",
+    "prompt": "Calculate: 147 + 286. Answer with only the calculation and final number.",
+    "expected_answer": "433"
+  },
+  {
+    "id": "arith_02",
+    "category": "arithmetic",
+    "prompt": "What is 15 multiplied by 12?",
+    "expected_answer": "180"
+  },
+  {
+    "id": "arith_03",
+    "category": "arithmetic",
+    "prompt": "If a train travels 240 miles in 4 hours, what is its average speed in miles per hour?",
+    "expected_answer": "60"
+  },
+  {
+    "id": "arith_04",
+    "category": "arithmetic",
+    "prompt": "Solve: (50 - 18) / 4. Show the result.",
+    "expected_answer": "8"
+  },
+  {
+    "id": "reason_01",
+    "category": "reasoning",
+    "prompt": "Sally is taller than Alice. Bob is shorter than Alice. Who is the tallest of the three?",
+    "expected_answer": "Sally"
+  },
+  {
+    "id": "reason_02",
+    "category": "reasoning",
+    "prompt": "A box contains 3 red balls, 4 green balls, and 5 blue balls. If you draw one ball without looking, what is the probability that it is red? Express as a fraction.",
+    "expected_answer": "1/4"
+  },
+  {
+    "id": "reason_03",
+    "category": "reasoning",
+    "prompt": "All roses are flowers. Some flowers fade quickly. Does it strictly follow that some roses fade quickly? Explain in 1-2 sentences.",
+    "expected_answer": "no"
+  },
+  {
+    "id": "reason_04",
+    "category": "reasoning",
+    "prompt": "If yesterday was Tuesday, what day will it be two days after tomorrow?",
+    "expected_answer": "Saturday"
+  },
+  {
+    "id": "code_01",
+    "category": "coding",
+    "prompt": "Write a Python function `is_palindrome(s: str) -> bool` that returns True if a given string reads the same backwards, ignoring case.",
+    "expected_keywords": ["def", "lower", "return"]
+  },
+  {
+    "id": "code_02",
+    "category": "coding",
+    "prompt": "Write a Python function `sum_even(numbers: list[int]) -> int` that returns the sum of all even numbers in a list.",
+    "expected_keywords": ["def", "%", "2", "return"]
+  },
+  {
+    "id": "code_03",
+    "category": "coding",
+    "prompt": "Identify the bug in this Python snippet and provide the corrected line:\n```python\ndef average(nums):\n    return sum(nums) / len(num)\n```",
+    "expected_keywords": ["nums", "len"]
+  },
+  {
+    "id": "code_04",
+    "category": "coding",
+    "prompt": "Write a short Bash command to count the number of lines in a file named `log.txt`.",
+    "expected_keywords": ["wc", "-l"]
+  },
+  {
+    "id": "sum_01",
+    "category": "summarization",
+    "prompt": "Summarize the following passage into one sentence:\nArtificial intelligence is rapidly transforming software engineering. Modern developer tools now integrate large language models to assist with code completion, bug detection, documentation generation, and unit testing. While these tools significantly accelerate development velocity, human oversight and rigorous verification remain essential for production safety.",
+    "expected_keywords": ["artificial intelligence", "software", "development"]
+  },
+  {
+    "id": "sum_02",
+    "category": "summarization",
+    "prompt": "Provide 3 bullet points summarizing the key properties of the HTTP protocol:\nHTTP is an application layer protocol used for transmitting hypermedia documents. It operates on a client-server model where a web browser initiates requests and a server responds. HTTP is stateless by default, meaning each request is handled independently without stored session context, though cookies and tokens can maintain state across requests.",
+    "expected_keywords": ["client-server", "stateless"]
+  },
+  {
+    "id": "struct_01",
+    "category": "structured_output",
+    "prompt": "Generate a valid JSON object describing a task with the following fields: 'task' (string), 'priority' ('high', 'medium', or 'low'), and 'reason' (string). Respond with ONLY the raw JSON object and nothing else.",
+    "expected_format": "json"
+  },
+  {
+    "id": "struct_02",
+    "category": "structured_output",
+    "prompt": "Extract the person information from this text into a JSON object with keys 'name', 'age', and 'city': 'Dr. Elena Rostova is a 34-year-old astrophysicist currently based in Vienna.' Output only JSON.",
+    "expected_format": "json"
+  },
+  {
+    "id": "struct_03",
+    "category": "structured_output",
+    "prompt": "Create a JSON array containing three colors: red, green, blue. Output ONLY the JSON array without markdown formatting.",
+    "expected_format": "json"
+  },
+  {
+    "id": "tool_01",
+    "category": "tool_call_formatting",
+    "prompt": "You are an AI assistant capable of invoking tools. When the user asks to check the weather in Paris, respond with a JSON object in the exact format: {\"name\": \"get_weather\", \"arguments\": {\"city\": \"Paris\"}}. Output ONLY the JSON object.",
+    "expected_format": "json"
+  },
+  {
+    "id": "tool_02",
+    "category": "tool_call_formatting",
+    "prompt": "Output a tool call JSON object to create a task titled 'Update documentation' with priority 'high'. Format: {\"name\": \"create_task\", \"arguments\": {\"title\": \"Update documentation\", \"priority\": \"high\"}}. Output only the JSON.",
+    "expected_format": "json"
+  },
+  {
+    "id": "conv_01",
+    "category": "conversation",
+    "prompt": "User: I am feeling overwhelmed by all my pending tasks this week.\nAssistant: Respond empathetically in 2-3 sentences and offer a practical starting step.",
+    "expected_keywords": ["help", "start", "one"]
+  },
+  {
+    "id": "conv_02",
+    "category": "conversation",
+    "prompt": "What is the difference between synchronous and asynchronous programming? Keep it conversational and easy to understand.",
+    "expected_keywords": ["wait", "blocking", "asynchronous"]
+  },
+  {
+    "id": "fact_01",
+    "category": "factual_knowledge",
+    "prompt": "What is the chemical formula for water?",
+    "expected_answer": "H2O"
+  },
+  {
+    "id": "fact_02",
+    "category": "factual_knowledge",
+    "prompt": "In what year did the Apollo 11 mission successfully land humans on the Moon?",
+    "expected_answer": "1969"
+  }
+]

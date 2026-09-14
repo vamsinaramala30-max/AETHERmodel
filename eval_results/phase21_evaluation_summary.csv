@@ -1,0 +1,17 @@
+Dimension,Metric,Baseline_V2,Candidate_V3,Change,Status
+Capability_Retention,Conversation,1.5,1.5,+0.00,RETAINED
+Capability_Retention,Instruction Following,0.25,0.25,+0.00,RETAINED
+Capability_Retention,Explanation,1.62,1.62,+0.00,RETAINED
+Capability_Retention,Summarization,1.5,1.5,+0.00,RETAINED
+Capability_Retention,Reasoning,1.25,1.25,+0.00,RETAINED
+Capability_Retention,Planning,1.5,1.5,+0.00,RETAINED
+Capability_Retention,Context,1.1,1.1,+0.00,RETAINED
+Capability_Retention,Clarification,1.0,1.0,+0.00,RETAINED
+Capability_Retention,Uncertainty,1.25,1.25,+0.00,RETAINED
+Capability_Retention,Decision Making,1.38,1.38,+0.00,RETAINED
+Targeted_Improvement,Planning & Milestones,1.5,1.5,+0.00,UNCHANGED
+Targeted_Improvement,Clarification on Ambiguity,1.0,3.8,+2.80,IMPROVED
+Targeted_Improvement,Constraint & Budget Handling,1.5,1.5,+0.00,UNCHANGED
+Targeted_Improvement,Prerequisite Dependencies,1.5,1.5,+0.00,UNCHANGED
+Targeted_Improvement,Prioritization & Triage,1.5,1.5,+0.00,UNCHANGED
+Targeted_Improvement,Dialogue Context Retrieval,2.0,4.8,+2.80,IMPROVED
