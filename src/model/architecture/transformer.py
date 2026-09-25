@@ -128,7 +128,7 @@ class AetherTransformerArchitecture:
         Executes full analytical backpropagation pass starting from grad_logits [seq_len, vocab_size].
         Accumulates gradients into all trainable layer weights.
         """
-        if not grad_logits or self._last_input_ids is None:
+        if grad_logits is None or len(grad_logits) == 0 or self._last_input_ids is None:
             return
 
         # 1. Backward through LM Head
