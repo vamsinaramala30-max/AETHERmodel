@@ -1,0 +1,88 @@
+# Implementation Plan — AETHER_MODEL Phase 4
+
+## Objective
+Execute **AETHER_MODEL Phase 4** to investigate and develop an Aether-owned neural model candidate while preserving the validated **Qwen2.5-1.5B-Instruct-Q4_K_M** GGUF baseline as the authoritative production inference engine. All work will follow strict evidence-driven principles: zero fabricated results, actual hardware limitation accounting, real execution of training/benchmarks, and preservation of platform compatibility.
+
+---
+
+## User Review Required
+
+> [!IMPORTANT]
+> **Hardware Boundary & Production Inference Retention:**
+> The host system has an AMD Ryzen 3 3250U dual-core CPU with ~5.94 GB total RAM (with ~0.4–1.7 GB available free RAM) and no CUDA GPU.
+> 1. Full fine-tuning or LoRA backpropagation on the 1.5B Qwen model is physically blocked on this hardware without fatal OS freeze / OOM.
+> 2. The existing Track A custom transformer (~3.68M parameters) can be trained on the 218 Phase 3 records for deep-learning proof (loss decrease, backpropagation, optimizer updates, memorization), but cannot match a 1.5B-parameter model pretrained on trillions of tokens across general knowledge, reasoning, and tool formatting.
+> 3. Therefore, `checkpoints/model.gguf` (Qwen2.5-1.5B-Instruct-Q4_K_M) will strictly remain the **authoritative production baseline**, and the Aether-native candidate will be evaluated as an **experimental candidate** under the model registry.
+
+---
+
+## Proposed Phases & Execution Steps
+
+### 1. Forensic Audit & Baseline Preservation
+- Confirm cryptographic integrity of `checkpoints/model.gguf` (SHA-256: `6a1a2eb6...`, size: 1,117,320,736 bytes).
+- Verify all 38 existing tests pass (`test_phase2_production_baseline.py` 19/19, `test_phase3_adaptation_suite.py` 9/9, `test_phase3_evaluator_unit.py` 10/10).
+- Audit directory structure and dependencies (`.venv` with `llama-cpp-python`, system Python with `torch`, `transformers`, `accelerate`).
+
+### 2. Architecture & Tokenizer Verification
+- **Tokenizer**: Run exhaustive roundtrip tests with `scripts/verify_phase4_tokenizer.py` across English, numbers, punctuation, Python/TS code, Unicode/emojis, and Indic languages (Hindi, Telugu, Tamil). Ensure all 9 special tokens are correctly mapped.
+- **Track A Architecture**: Inspect embeddings, sinusoidal positional encoding, 6-layer 8-head multi-head attention, layer norm, GELU feed-forward, residual connections, causal masking, KV caching, and output head (~3.68M parameters).
+- **Track B Specification**: Document architectural parameters, compute scaling, memory footprint, and token pretraining requirements for a 10M–50M compact decoder-only transformer.
+
+### 3. Dataset & Contamination Verification
+- Re-verify zero leakage across `data/phase3/` (`train.jsonl` 218 records, `val.jsonl` 36 records, `test.jsonl` 36 records) and the locked 105-prompt evaluation suite (`benchmark/phase3_evaluation_suite.json`).
+- Ensure 0 exact, 0 normalized, and 0 near-duplicate overlaps.
+
+### 4. Causal LM Loss & Tiny Overfit Proof
+- **Loss Verification**: Run `scripts/verify_phase4_causal_loss.py` to mathematically verify causal next-token shift ($t_0..t_{N-1} \to t_1..t_N$, last token is `<eos>`), prompt and pad masking, numerical log-sum-exp stability, and finite-difference vs analytical gradient error (< 1e-5).
+- **Tiny Overfit Test**: Execute `scripts/run_phase4_tiny_overfit.py` on 8 controlled samples over 35 epochs. Prove AdamW optimizer updates, monotonic loss reduction (>70%), checkpoint save/reload determinism (< 1e-6 logit diff), and auto-regressive generation.
+
+### 5. Controlled Training Experiment (Track A)
+- Train the Track A model on the complete 218 Phase 3 training records (`train.jsonl`) with validation evaluation on `val.jsonl` (36 records) using AdamW, cosine learning rate schedule, gradient clipping, and checkpointing.
+- Track real metrics: step loss, epoch loss, validation loss, validation perplexity, token accuracy, elapsed time, peak RAM, CPU usage.
+- Save deterministic checkpoint with full metadata and SHA-256 hash (`checkpoints/aether_checkpoint_phase4_candidate.json`).
+- Perform checkpoint reload test to verify deterministic inference equivalence.
+
+### 6. Locked 105-Prompt Benchmark & Comparison
+- Evaluate the candidate model on the locked 105-prompt benchmark across all 14 categories (language quality, instruction following, arithmetic, reasoning, factual knowledge, conversation, summarization, JSON, tool formatting, multi-step, Aether identity, uncertainty, RAG/context, safe refusal).
+- Construct honest category-by-category comparison table: Baseline (Qwen 1.5B GGUF) vs Candidate (Aether ~3.68M).
+- Record latency, throughput (tok/s), memory, stability, and generation defects (repetition, premature EOS, syntax errors).
+
+### 7. GGUF Export & llama.cpp Evaluation
+- Evaluate GGUF export feasibility: assess custom NumPy tensor layout and non-standard 1024-token vocabulary compatibility with llama.cpp converter (`convert_hf_to_gguf.py`).
+- Document conversion blockers or requirements for C++ architectural support.
+
+### 8. Provider Compatibility & Model Registry
+- Ensure `AETHER_BAC`'s `AetherModelProvider` and `AETHER_MODEL/aether/api/server.py` maintain model-independent contracts (`ILLMProvider` / `IModelProvider`: `/health`, `/model/status`, `/v1/models`, `/v1/generate`, `/v1/stream`).
+- Create `checkpoints/model_registry.json` registering:
+  - `qwen2.5-1.5b-instruct-q4km` (STATUS: VALIDATED BASELINE, Authoritative Default)
+  - `aether-small-v0.1` (STATUS: EXPERIMENTAL CANDIDATE)
+
+### 9. Platform Regression & Live Verification
+- Run complete test regression in `AETHER_MODEL`: Phase 2 baseline (19 tests), Phase 3 adaptation (9 tests), Phase 3 evaluator (10 tests), and dedicated Phase 4 test suite.
+- Run backend verification in `AETHER_BAC` to ensure orchestrator and provider compatibility.
+- Live API verification: health checks, model status, generation, and streaming.
+
+### 10. Final Report & Authoritative Verdict
+- Author `AETHER_MODEL_PHASE4_REPORT.md` with all 25 mandated sections.
+- Formulate the evidence-based final verdict:
+  `AETHER MODEL PHASE 4 COMPLETE — TRAINING BLOCKED BY HARDWARE`
+  (documenting what was attempted, what passed, what hardware was insufficient, future scaling path for 10M–7B, and retaining the validated Qwen GGUF baseline in production).
+
+---
+
+## Verification Plan
+
+### Automated Tests
+- `scripts/verify_phase4_tokenizer.py` (Roundtrip encode/decode on 10 categories, special tokens)
+- `scripts/verify_dataset_and_contamination.py` (Zero leakage across train/val/test/benchmark)
+- `scripts/verify_phase4_causal_loss.py` (Causal shift, prompt masking, finite-diff gradient check)
+- `scripts/run_phase4_tiny_overfit.py` (Memorization, loss drop >70%, checkpoint reload determinism)
+- `tests/test_phase2_production_baseline.py` (19/19 baseline tests in `.venv`)
+- `tests/test_phase3_adaptation_suite.py` (9/9 adaptation tests in `.venv`)
+- `tests/test_phase3_evaluator_unit.py` (10/10 evaluator tests in `.venv`)
+- Dedicated Phase 4 test suite (`tests/test_phase4_suite.py`) validating model registry, candidate loading, and hardware guards.
+
+### Manual / Live Verification
+- Test `/health` and `/model/status` endpoints on FastAPI serving port 5002.
+- Test `/v1/generate` and `/v1/stream` with real Qwen GGUF baseline and inspect SSE chunks.
+- Inspect candidate training metrics log and checkpoint metadata.

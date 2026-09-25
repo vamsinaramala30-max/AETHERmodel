@@ -118,9 +118,16 @@ class CheckpointManager:
             "scheduler_state": sched_state_dict,
         }
 
+        def _json_default(obj):
+            if hasattr(obj, "item"):
+                return obj.item()
+            if hasattr(obj, "tolist"):
+                return obj.tolist()
+            raise TypeError(f"Object of type {obj.__class__.__name__} is not JSON serializable")
+
         temp_path = f"{ckpt_path}.tmp"
         with open(temp_path, "w", encoding="utf-8") as f:
-            json.dump(payload, f)
+            json.dump(payload, f, default=_json_default)
 
         # Atomic rename to prevent partial writes
         if os.path.exists(ckpt_path):
