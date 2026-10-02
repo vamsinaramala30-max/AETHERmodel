@@ -13,3 +13,10 @@ data/*.db
 .env.*
 .vscode
 .idea
+checkpoints/.cache
+checkpoints/experiment_*
+checkpoints/test_*
+checkpoints/p10_*
+checkpoints/p21_*
+checkpoints/*_run.json
+

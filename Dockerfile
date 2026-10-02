@@ -11,6 +11,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt ./
+# Configure CMake flags for ARM64 / Ampere A1 (Neoverse N1) CPU compatibility
+ENV CMAKE_ARGS="-DGGML_NATIVE=OFF"
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . ./
