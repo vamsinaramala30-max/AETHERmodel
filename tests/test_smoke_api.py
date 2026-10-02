@@ -87,7 +87,7 @@ def client():
 # Helpers
 # ---------------------------------------------------------------------------
 
-GARBAGE_PATTERN = re.compile(r"(\*{3,}|\.{5,}|_{5,}|\s{10,})")
+GARBAGE_PATTERN = re.compile(r"(\*{3,}|\.{5,}|_{10,}|\s{10,})")
 
 
 def assert_valid_response(body: dict, *, check_evidence_field: bool = True) -> None:

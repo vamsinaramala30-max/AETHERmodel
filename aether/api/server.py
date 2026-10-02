@@ -19,6 +19,7 @@ import json
 import logging
 import os
 import sys
+import threading
 import time
 import uuid
 from collections import defaultdict
@@ -63,13 +64,17 @@ logger = logging.getLogger("aether.server")
 # ---------------------------------------------------------------------------
 
 class ModelState(str, Enum):
-    UNINITIALIZED = "UNINITIALIZED"
-    NOT_LOADED    = "NOT_LOADED"
-    LOADING       = "LOADING"
+    STARTING      = "STARTING"
     READY         = "READY"
+    GENERATING    = "GENERATING"
+    DEGRADED      = "DEGRADED"
     FAILED        = "FAILED"
-    ERROR         = "ERROR"
-    UNAVAILABLE   = "UNAVAILABLE"
+    # Backwards-compatibility aliases
+    UNINITIALIZED = "STARTING"
+    NOT_LOADED    = "STARTING"
+    LOADING       = "STARTING"
+    ERROR         = "FAILED"
+    UNAVAILABLE   = "FAILED"
 
 
 class _ModelStatus:
@@ -78,20 +83,29 @@ class _ModelStatus:
     All reads/writes are protected by _lock (asyncio.Lock).
     """
     def __init__(self):
-        self.state: ModelState = ModelState.UNINITIALIZED
+        self.state: ModelState = ModelState.STARTING
         self.error: Optional[str] = None
         self.model_name: Optional[str] = None
         self.load_started_at: Optional[float] = None
         self.load_finished_at: Optional[float] = None
+        self.active_generations: int = 0
         self._lock: asyncio.Lock = asyncio.Lock()
 
     def to_dict(self) -> dict:
+        has_weights = os.path.exists(settings.model.gguf_model_path)
+        effective_state = self.state.value
+        if self.state in (ModelState.READY, ModelState.DEGRADED) and self.active_generations > 0:
+            effective_state = ModelState.GENERATING.value
+        elif self.state == ModelState.READY and _retrieval_engine is None:
+            effective_state = ModelState.DEGRADED.value
         return {
-            "state": self.state.value,
-            "status": self.state.value,
+            "state": effective_state,
+            "status": effective_state,
             "model": self.model_name or os.path.basename(settings.model.gguf_model_path),
             "error": self.error,
-            "has_trained_weights": True if self.state == ModelState.READY else False,
+            "has_trained_weights": has_weights,
+            "active_generations": self.active_generations,
+            "retrieval_ok": _retrieval_engine is not None,
             "load_duration_s": (
                 round(self.load_finished_at - self.load_started_at, 2)
                 if self.load_started_at and self.load_finished_at else None
@@ -100,6 +114,32 @@ class _ModelStatus:
 
 
 _model_status = _ModelStatus()
+
+# ---------------------------------------------------------------------------
+# Concurrency, Security, and Limits
+# ---------------------------------------------------------------------------
+_MAX_CONCURRENCY = int(os.environ.get("AETHER_MAX_CONCURRENCY", "2"))
+_concurrency_sem = asyncio.Semaphore(_MAX_CONCURRENCY)
+_MAX_PROMPT_LEN = int(os.environ.get("AETHER_MAX_PROMPT_CHARS", "32768"))
+_MODEL_API_KEY = os.environ.get("AETHER_MODEL_API_KEY", "").strip()
+
+def _verify_auth(request: Request) -> None:
+    """Validate internal API key authentication between BAC and MODEL if configured."""
+    if not _MODEL_API_KEY:
+        return
+    auth_header = request.headers.get("Authorization", "")
+    key_header = request.headers.get("X-Aether-Model-Key", "")
+    token = ""
+    if auth_header.startswith("Bearer "):
+        token = auth_header[7:].strip()
+    elif key_header:
+        token = key_header.strip()
+    if token != _MODEL_API_KEY:
+        raise HTTPException(
+            status_code=401,
+            detail={"code": "UNAUTHORIZED", "message": "Invalid or missing model service API key"},
+        )
+
 
 # Singletons populated during lazy load
 _llama_engine = None           # LlamaCppEngine
@@ -160,10 +200,15 @@ async def startup_event():
     )
 
     if not gguf_exists:
+        _model_status.state = ModelState.UNAVAILABLE
+        _model_status.error = f"GGUF model not found at: {gguf_path}"
         logger.warning(
             f"GGUF model not found at: {gguf_path}\n"
             "Download with: python scripts/download_model.py"
         )
+    else:
+        _model_status.state = ModelState.NOT_LOADED
+        _model_status.error = None
 
     # ── Optional components (degrade gracefully on failure) ──
 
@@ -197,7 +242,15 @@ async def startup_event():
     if _task_manager:
         _register_task_tools(_registry, _task_manager, user_id="default")
 
-    logger.info("=== Aether Server Ready (model not yet loaded) ===")
+    if gguf_exists and os.environ.get("AETHER_EAGER_LOAD", "1") == "1":
+        logger.info("Eager model loading enabled — loading model during startup...")
+        try:
+            await _ensure_model_loaded()
+            logger.info("=== Aether Server Ready (Model Loaded: READY) ===")
+        except Exception as e:
+            logger.error(f"Eager model load failed: {e}")
+    else:
+        logger.info("=== Aether Server Ready (Model state: NOT_LOADED) ===")
 
 
 def _register_task_tools(registry: ToolRegistry, tm: TaskManager, user_id: str) -> None:
@@ -325,13 +378,13 @@ async def _ensure_model_loaded() -> None:
             )
 
             _model_status.model_name = os.path.basename(gguf_path)
-            _model_status.state = ModelState.READY
+            _model_status.state = ModelState.READY if _retrieval_engine is not None else ModelState.DEGRADED
             _model_status.load_finished_at = time.time()
             load_s = round(_model_status.load_finished_at - _model_status.load_started_at, 2)
-            logger.info(f"Model loaded in {load_s}s: {_model_status.model_name} [READY]")
+            logger.info(f"Model loaded in {load_s}s: {_model_status.model_name} [{_model_status.state.value}]")
 
         except FileNotFoundError as fnf_err:
-            _model_status.state = ModelState.UNAVAILABLE
+            _model_status.state = ModelState.FAILED
             _model_status.error = str(fnf_err)
             logger.warning(f"GGUF model unavailable: {fnf_err}")
             raise HTTPException(
@@ -352,6 +405,7 @@ async def _ensure_model_loaded() -> None:
                     "message": f"Model load failed: {exc}",
                 },
             )
+
 
 
 # ---------------------------------------------------------------------------
@@ -437,18 +491,20 @@ class IndexDocumentRequest(BaseModel):
 async def health():
     """
     Health check. Always responds in <100ms — does NOT wait for model load.
-    Returns 503 when model is in FAILED, ERROR, or UNAVAILABLE state.
+    Returns 503 when model is in FAILED or ERROR state.
     """
     uptime_s = round(time.time() - _startup_time, 1)
     retrieval_ok = _retrieval_engine is not None
+    info = _model_status.to_dict()
+    is_failed = _model_status.state == ModelState.FAILED
 
-    if _model_status.state in (ModelState.ERROR, ModelState.FAILED, ModelState.UNAVAILABLE):
+    if is_failed:
         return JSONResponse(
             status_code=503,
             content={
                 "ok": False,
-                "status": _model_status.state.value,
-                "state": _model_status.state.value,
+                "status": info["status"],
+                "state": info["state"],
                 "error": _model_status.error,
                 "has_trained_weights": False,
                 "uptime_s": uptime_s,
@@ -459,14 +515,45 @@ async def health():
 
     return {
         "ok": True,
-        "status": _model_status.state.value,
-        "state": _model_status.state.value,
-        "model": _model_status.model_name or os.path.basename(settings.model.gguf_model_path),
-        "has_trained_weights": True,
+        "status": info["status"],
+        "state": info["state"],
+        "model": info["model"],
+        "has_trained_weights": info["has_trained_weights"],
         "retrieval_ok": retrieval_ok,
         "uptime_s": uptime_s,
+        "active_generations": _model_status.active_generations,
         "timestamp_ms": int(time.time() * 1000),
     }
+
+
+@app.get("/ready")
+@app.get("/v1/ready")
+async def ready():
+    """
+    Readiness probe for container orchestrators.
+    Returns 200 OK when model is READY, GENERATING, or DEGRADED (capable of generating).
+    Returns 503 when model is STARTING, FAILED, or UNAVAILABLE.
+    """
+    info = _model_status.to_dict()
+    is_ready = _model_status.state in (ModelState.READY, ModelState.GENERATING, ModelState.DEGRADED)
+    if not is_ready:
+        return JSONResponse(
+            status_code=503,
+            content={
+                "ready": False,
+                "status": info["status"],
+                "state": info["state"],
+                "error": _model_status.error or "Model is not loaded or not ready for inference",
+                "model": info["model"],
+            },
+        )
+    return {
+        "ready": True,
+        "status": info["status"],
+        "state": info["state"],
+        "model": info["model"],
+    }
+
 
 
 @app.get("/model/status")
@@ -503,6 +590,7 @@ async def generate(req: GenerateRequest, request: Request):
     Generate a response. Performs memory recall + RAG before generation.
     evidence_used is NEVER hardcoded — computed from retrieval scores.
     """
+    _verify_auth(request)
     rid = str(uuid.uuid4())[:12]
     _check_rate_limit(req.user_id)
     await _ensure_model_loaded()
@@ -510,59 +598,86 @@ async def generate(req: GenerateRequest, request: Request):
     prompt = req.effective_prompt()
     if not prompt:
         raise HTTPException(status_code=400, detail="prompt or messages[].content is required")
+    if len(prompt) > _MAX_PROMPT_LEN:
+        raise HTTPException(
+            status_code=413,
+            detail={"code": "PAYLOAD_TOO_LARGE", "message": f"Prompt exceeds max length of {_MAX_PROMPT_LEN} characters"},
+        )
+
+    try:
+        await asyncio.wait_for(_concurrency_sem.acquire(), timeout=0.1)
+    except asyncio.TimeoutError:
+        raise HTTPException(
+            status_code=429,
+            detail={"code": "MODEL_BUSY", "message": "Inference capacity reached. Please try again shortly."},
+        )
 
     t0 = time.perf_counter()
     logger.info(f"[{rid}] POST /v1/generate | user='{req.user_id}' | prompt_len={len(prompt)}")
 
-    # Memory: handle "remember that" commands
-    if req.use_memory and _memory_store:
-        is_remember, reply = _memory_store.handle_input(req.user_id, prompt)
-        if is_remember:
-            latency_ms = round((time.perf_counter() - t0) * 1000, 2)
-            return {
-                "id": f"gen_{rid}", "object": "text_completion",
-                "content": reply, "confidence": "HIGH_CONFIDENCE",
-                "evidence_used": False, "memory_stored": True,
-                "model": _model_status.model_name,
-                "usage": {"latency_ms": latency_ms},
-            }
+    try:
+        # Memory: handle "remember that" commands
+        if req.use_memory and _memory_store:
+            is_remember, reply = _memory_store.handle_input(req.user_id, prompt)
+            if is_remember:
+                latency_ms = round((time.perf_counter() - t0) * 1000, 2)
+                return {
+                    "id": f"gen_{rid}", "object": "text_completion",
+                    "content": reply, "confidence": "HIGH_CONFIDENCE",
+                    "evidence_used": False, "memory_stored": True,
+                    "model": _model_status.model_name,
+                    "usage": {"latency_ms": latency_ms},
+                }
 
-    # Memory recall
-    memory_context = ""
-    if req.use_memory and _memory_store:
-        memories = _memory_store.recall(req.user_id, prompt)
-        if memories:
-            memory_context = _memory_store.format_memory_context(memories)
+        # Memory recall
+        memory_context = ""
+        if req.use_memory and _memory_store:
+            memories = _memory_store.recall(req.user_id, prompt)
+            if memories:
+                memory_context = _memory_store.format_memory_context(memories)
 
-    # RAG retrieval
-    retrieved_chunks: list[str] = []
-    evidence_used = False
-    if req.use_rag and _retrieval_engine:
-        retrieved_chunks, evidence_used = _retrieval_engine.retrieve(
-            prompt, k=settings.retrieval.default_k
-        )
+        # RAG retrieval
+        retrieved_chunks: list[str] = []
+        evidence_used = False
+        if req.use_rag and _retrieval_engine:
+            retrieved_chunks, evidence_used = _retrieval_engine.retrieve(
+                prompt, k=settings.retrieval.default_k
+            )
 
-    # Build augmented prompt
-    augmented = RetrievalEngine.build_augmented_prompt(prompt, retrieved_chunks) if retrieved_chunks else prompt
-    if memory_context:
-        augmented = f"{memory_context}\n\n{augmented}"
+        # Build augmented prompt
+        augmented = RetrievalEngine.build_augmented_prompt(prompt, retrieved_chunks) if retrieved_chunks else prompt
+        if memory_context:
+            augmented = f"{memory_context}\n\n{augmented}"
 
-    system_prompt = req.context.get("system_prompt") if req.context else None
+        system_prompt = req.context.get("system_prompt") if req.context else None
 
-    # Generate (in thread pool — sync engine)
-    loop = asyncio.get_event_loop()
-    result = await loop.run_in_executor(
-        None,
-        lambda: _llama_engine.generate(
-            prompt=augmented,
-            system_prompt=system_prompt,
-            max_tokens=req.max_tokens,
-            temperature=req.temperature,
-            top_p=req.top_p,
-            top_k=req.top_k,
-            request_id=rid,
-        )
-    )
+        _model_status.active_generations += 1
+        loop = asyncio.get_event_loop()
+        try:
+            result = await asyncio.wait_for(
+                loop.run_in_executor(
+                    None,
+                    lambda: _llama_engine.generate(
+                        prompt=augmented,
+                        system_prompt=system_prompt,
+                        max_tokens=req.max_tokens,
+                        temperature=req.temperature,
+                        top_p=req.top_p,
+                        top_k=req.top_k,
+                        request_id=rid,
+                    ),
+                ),
+                timeout=settings.agent.generation_timeout_s,
+            )
+        except asyncio.TimeoutError:
+            raise HTTPException(
+                status_code=504,
+                detail={"code": "GENERATION_TIMEOUT", "message": f"Generation timed out after {settings.agent.generation_timeout_s}s"},
+            )
+    finally:
+        _model_status.active_generations = max(0, _model_status.active_generations - 1)
+        _concurrency_sem.release()
+
 
     latency_ms = round((time.perf_counter() - t0) * 1000, 2)
 
@@ -607,6 +722,7 @@ async def stream_generate(req: GenerateRequest, request: Request):
     SSE streaming endpoint. TRUE token-by-token streaming.
     Yields JSON data chunks with 'delta' and 'done' fields, terminating with [DONE].
     """
+    _verify_auth(request)
     rid = str(uuid.uuid4())[:12]
     _check_rate_limit(req.user_id)
     await _ensure_model_loaded()
@@ -614,6 +730,19 @@ async def stream_generate(req: GenerateRequest, request: Request):
     prompt = req.effective_prompt()
     if not prompt:
         raise HTTPException(status_code=400, detail={"code": "EMPTY_PROMPT", "message": "prompt is required"})
+    if len(prompt) > _MAX_PROMPT_LEN:
+        raise HTTPException(
+            status_code=413,
+            detail={"code": "PAYLOAD_TOO_LARGE", "message": f"Prompt exceeds max length of {_MAX_PROMPT_LEN} characters"},
+        )
+
+    try:
+        await asyncio.wait_for(_concurrency_sem.acquire(), timeout=0.1)
+    except asyncio.TimeoutError:
+        raise HTTPException(
+            status_code=429,
+            detail={"code": "MODEL_BUSY", "message": "Inference capacity reached. Please try again shortly."},
+        )
 
     logger.info(f"[{rid}] POST /v1/stream | user='{req.user_id}' | prompt_len={len(prompt)}")
 
@@ -640,6 +769,8 @@ async def stream_generate(req: GenerateRequest, request: Request):
         augmented = f"{memory_context}\n\n{augmented}"
 
     system_prompt = req.context.get("system_prompt") if req.context else None
+    abort_event = threading.Event()
+    _model_status.active_generations += 1
 
     async def event_generator() -> AsyncGenerator[str, None]:
         loop = asyncio.get_event_loop()
@@ -655,6 +786,7 @@ async def stream_generate(req: GenerateRequest, request: Request):
                     top_p=req.top_p,
                     top_k=req.top_k,
                     request_id=rid,
+                    abort_event=abort_event,
                 ):
                     loop.call_soon_threadsafe(queue.put_nowait, chunk)
             except Exception as exc:
@@ -665,46 +797,55 @@ async def stream_generate(req: GenerateRequest, request: Request):
 
         loop.run_in_executor(None, _run_stream)
 
-        while True:
-            if await request.is_disconnected():
-                logger.info(f"[{rid}] Client disconnected during stream")
-                return
+        try:
+            while True:
+                if await request.is_disconnected():
+                    logger.info(f"[{rid}] Client disconnected during stream")
+                    abort_event.set()
+                    return
 
-            try:
-                chunk = await asyncio.wait_for(queue.get(), timeout=120.0)
-            except asyncio.TimeoutError:
-                err_payload = {"error": "Response timed out.", "done": True}
-                yield f"data: {json.dumps(err_payload)}\n\n"
-                yield "data: [DONE]\n\n"
-                return
+                try:
+                    chunk = await asyncio.wait_for(queue.get(), timeout=120.0)
+                except asyncio.TimeoutError:
+                    abort_event.set()
+                    err_payload = {"error": "Response timed out.", "done": True}
+                    yield f"data: {json.dumps(err_payload)}\n\n"
+                    yield "data: [DONE]\n\n"
+                    return
 
-            if chunk.get("error"):
-                err_payload = {"error": chunk["error"], "done": True}
-                yield f"data: {json.dumps(err_payload)}\n\n"
-                yield "data: [DONE]\n\n"
-                return
+                if chunk.get("error"):
+                    abort_event.set()
+                    err_payload = {"error": chunk["error"], "done": True}
+                    yield f"data: {json.dumps(err_payload)}\n\n"
+                    yield "data: [DONE]\n\n"
+                    return
 
-            if chunk.get("delta"):
-                token_payload = {
-                    "delta": chunk["delta"],
-                    "text": chunk["delta"],
-                    "done": False,
-                    "tokens_generated": chunk.get("tokens_generated", 0),
-                }
-                yield f"data: {json.dumps(token_payload)}\n\n"
+                if chunk.get("delta"):
+                    token_payload = {
+                        "delta": chunk["delta"],
+                        "text": chunk["delta"],
+                        "done": False,
+                        "tokens_generated": chunk.get("tokens_generated", 0),
+                    }
+                    yield f"data: {json.dumps(token_payload)}\n\n"
 
-            if chunk.get("done"):
-                done_payload = {
-                    "delta": "",
-                    "text": "",
-                    "done": True,
-                    "final": True,
-                    "tokens_generated": chunk.get("tokens_generated", 0),
-                    "finish_reason": "stop",
-                }
-                yield f"data: {json.dumps(done_payload)}\n\n"
-                yield "data: [DONE]\n\n"
-                return
+                if chunk.get("done"):
+                    done_payload = {
+                        "delta": "",
+                        "text": "",
+                        "done": True,
+                        "final": True,
+                        "tokens_generated": chunk.get("tokens_generated", 0),
+                        "finish_reason": "stop",
+                    }
+                    yield f"data: {json.dumps(done_payload)}\n\n"
+                    yield "data: [DONE]\n\n"
+                    return
+        finally:
+            abort_event.set()
+            _model_status.active_generations = max(0, _model_status.active_generations - 1)
+            _concurrency_sem.release()
+
 
     return StreamingResponse(
         event_generator(),
@@ -715,6 +856,18 @@ async def stream_generate(req: GenerateRequest, request: Request):
             "X-Accel-Buffering": "no",
         },
     )
+
+
+# ---------------------------------------------------------------------------
+# Explicit model load / warmup endpoint
+# ---------------------------------------------------------------------------
+
+@app.post("/model/load")
+@app.post("/v1/model/load")
+async def load_model():
+    """Explicitly trigger model loading (warmup)."""
+    await _ensure_model_loaded()
+    return _model_status.to_dict()
 
 
 # ---------------------------------------------------------------------------
@@ -852,6 +1005,78 @@ async def knowledge_count():
 
 
 # ---------------------------------------------------------------------------
+# Embeddings endpoint (Local SentenceTransformer / bge-small-en-v1.5)
+# ---------------------------------------------------------------------------
+
+class EmbeddingRequest(BaseModel):
+    content: Optional[str] = None
+    input: Optional[Any] = None
+    model: Optional[str] = None
+
+
+@app.post("/embedding")
+@app.post("/v1/embeddings")
+@app.post("/api/embeddings")
+async def create_embedding(req: EmbeddingRequest, request: Request):
+    _verify_auth(request)
+    global _retrieval_engine
+
+    if _retrieval_engine is None:
+        try:
+            os.makedirs(settings.retrieval.db_path, exist_ok=True)
+            _retrieval_engine = RetrievalEngine(
+                db_path=settings.retrieval.db_path,
+                embedding_model=settings.retrieval.embedding_model,
+                collection_name=settings.retrieval.knowledge_collection,
+                relevance_threshold=settings.retrieval.relevance_threshold,
+            )
+        except Exception as exc:
+            raise HTTPException(status_code=503, detail=f"Embedding engine unavailable: {exc}")
+
+    raw = req.content if req.content is not None else req.input
+    if raw is None:
+        raise HTTPException(status_code=400, detail="content or input field is required")
+
+    texts: List[str] = []
+    is_batch = False
+    if isinstance(raw, str):
+        texts = [raw]
+    elif isinstance(raw, (list, tuple)):
+        texts = [str(t) for t in raw]
+        is_batch = True
+    else:
+        texts = [str(raw)]
+
+    try:
+        embeddings = _retrieval_engine.embedder.encode(texts, normalize_embeddings=True).tolist()
+        first_emb = embeddings[0] if embeddings else []
+        dimensions = len(first_emb)
+
+        if not is_batch and req.content is not None:
+            return {
+                "embedding": first_emb,
+                "dimensions": dimensions,
+                "model": settings.retrieval.embedding_model,
+            }
+
+        return {
+            "object": "list",
+            "data": [
+                {"object": "embedding", "index": idx, "embedding": emb}
+                for idx, emb in enumerate(embeddings)
+            ],
+            "embedding": first_emb,
+            "embeddings": embeddings,
+            "dimensions": dimensions,
+            "model": settings.retrieval.embedding_model,
+        }
+    except Exception as exc:
+        logger.error(f"Embedding failed: {exc}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Embedding failed: {exc}")
+
+
+
+# ---------------------------------------------------------------------------
 # Legacy compat
 # ---------------------------------------------------------------------------
 
@@ -870,8 +1095,19 @@ async def audit(request: Request):
 
 
 # ---------------------------------------------------------------------------
+# Shutdown Lifecycle
+# ---------------------------------------------------------------------------
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    logger.info("[AETHER MODEL] Graceful shutdown initiated. Cleaning up runtime resources...")
+    # Allow any small trailing stream tasks to exit cleanly
+
+
+# ---------------------------------------------------------------------------
 # Entry point
 # ---------------------------------------------------------------------------
+
 
 if __name__ == "__main__":
     import uvicorn

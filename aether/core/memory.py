@@ -77,7 +77,7 @@ class MemoryStore:
         self,
         db_path: str,
         embedding_model: str = "BAAI/bge-small-en-v1.5",
-        relevance_threshold: float = 0.50,
+        relevance_threshold: float = 0.35,
     ):
         self._db_path = db_path
         self._embedding_model = embedding_model

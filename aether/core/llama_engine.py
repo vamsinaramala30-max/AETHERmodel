@@ -247,6 +247,7 @@ class LlamaCppEngine:
         top_k: int = 50,
         request_id: Optional[str] = None,
         stop: Optional[List[str]] = None,
+        abort_event: Optional[threading.Event] = None,
     ) -> Generator[Dict[str, Any], None, None]:
         """
         True token-by-token streaming using llama.cpp's native stream mode.
@@ -291,6 +292,9 @@ class LlamaCppEngine:
                 )
                 tokens_count = 0
                 for chunk in stream:
+                    if abort_event is not None and abort_event.is_set():
+                        logger.info(f"[{rid}] Stream generation cancelled early by client")
+                        break
                     delta = (
                         (chunk.get("choices") or [{}])[0]
                         .get("delta", {})
