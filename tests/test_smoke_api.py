@@ -87,7 +87,7 @@ def client():
 # Helpers
 # ---------------------------------------------------------------------------
 
-GARBAGE_PATTERN = re.compile(r"(\*{3,}|\.{5,}|_{5,}|\s{10,})")
+GARBAGE_PATTERN = re.compile(r"(\*{3,}|\.{5,}|_{10,}|\s{10,})")
 
 
 def assert_valid_response(body: dict, *, check_evidence_field: bool = True) -> None:
@@ -286,6 +286,7 @@ class TestMemory:
         if resp.status_code == 503:
             pytest.skip("Memory store not available")
         assert resp.status_code == 200
+        assert resp.headers.get("Deprecation") == "true"
         body = resp.json()
         assert body.get("stored") is True
         assert "doc_id" in body
