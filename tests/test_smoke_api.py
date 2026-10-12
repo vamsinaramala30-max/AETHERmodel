@@ -286,6 +286,7 @@ class TestMemory:
         if resp.status_code == 503:
             pytest.skip("Memory store not available")
         assert resp.status_code == 200
+        assert resp.headers.get("Deprecation") == "true"
         body = resp.json()
         assert body.get("stored") is True
         assert "doc_id" in body

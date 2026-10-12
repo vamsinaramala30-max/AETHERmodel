@@ -26,7 +26,7 @@ from collections import defaultdict
 from enum import Enum
 from typing import Any, AsyncGenerator, Dict, List, Optional
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel, Field, field_validator
@@ -223,7 +223,7 @@ async def startup_event():
         _memory_store = MemoryStore(
             db_path=settings.retrieval.db_path,
             embedding_model=settings.retrieval.embedding_model,
-            relevance_threshold=0.50,
+            relevance_threshold=0.35,
         )
         logger.info("Retrieval + Memory engines ready")
     except Exception as exc:
@@ -650,6 +650,8 @@ async def generate(req: GenerateRequest, request: Request):
             augmented = f"{memory_context}\n\n{augmented}"
 
         system_prompt = req.context.get("system_prompt") if req.context else None
+        if not system_prompt and memory_context:
+            system_prompt = "You are Aether, an intelligent assistant. Answer the user request accurately using the stored memory context provided."
 
         _model_status.active_generations += 1
         loop = asyncio.get_event_loop()
@@ -979,12 +981,19 @@ async def agent_endpoint(req: AgentRequest):
 # Memory + knowledge endpoints (unchanged contract, updated internals)
 # ---------------------------------------------------------------------------
 
-@app.post("/v1/memory/remember")
-async def remember(req: RememberRequest):
+@app.post("/v1/memory/remember", deprecated=True)
+async def remember(req: RememberRequest, response: Response):
+    """
+    [DEPRECATED — P3V-002 / P3-ARC-001] Legacy Python memory endpoint.
+    Conversational memory and RAG are authoritatively handled by AETHER_BAC
+    via PostgreSQL and pgvector. Maintained for backwards compatibility.
+    """
+    response.headers["Deprecation"] = "true"
+    response.headers["X-Aether-Authoritative-Service"] = "AETHER_BAC"
     if _memory_store is None:
         raise HTTPException(status_code=503, detail="Memory store not available")
     doc_id = _memory_store.remember(user_id=req.user_id, fact=req.fact)
-    return {"stored": True, "doc_id": doc_id, "fact": req.fact}
+    return {"stored": True, "doc_id": doc_id, "fact": req.fact, "deprecated": True}
 
 
 @app.post("/v1/knowledge/index")

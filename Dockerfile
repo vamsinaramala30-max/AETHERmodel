@@ -22,6 +22,10 @@ ENV AETHER_PORT=5002
 ENV AETHER_ENV=production
 ENV AETHER_GGUF_PATH=checkpoints/model.gguf
 
+RUN useradd -m -u 1000 aether && mkdir -p /app/checkpoints && chown -R aether:aether /app
+
+USER aether
+
 EXPOSE 5002
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
